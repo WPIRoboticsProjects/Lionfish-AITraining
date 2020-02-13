@@ -2,11 +2,16 @@
 Usage:
   # From tensorflow/models/
   # Create train data:
-  python3 generate_tfrecord.py --csv_input=data/train.csv  --output_path=data/train.record
+  python3 generate_tfrecord.py --csv_input=data/train.csv  --image_dir==data/images/train --output_path=data/train.record
 
   # Create test data:
-  python3 generate_tfrecord.py --csv_input=data/test.csv  --output_path=data/test.record
+  python3 generate_tfrecord.py --csv_input=data/test.csv  --image_dir==data/images/test --output_path=data/test.record
+
+  # Create validation data
+   8,
 """
+
+
 from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
@@ -44,14 +49,16 @@ def split(df, group):
 
 
 def create_tf_example(group, path):
-    with tf.gfile.GFile(os.path.join(path, '{}'.format(group.filename)), 'rb') as fid:
+    print(os.path.join(path, '{}'.format(group.filename)))
+    with tf.io.gfile.GFile(os.path.join(path, '{}'.format(group.filename)), 'rb') as fid:
         encoded_jpg = fid.read()
     encoded_jpg_io = io.BytesIO(encoded_jpg)
+    # print(encoded_jpg, encoded_jpg_io)
     image = Image.open(encoded_jpg_io)
     width, height = image.size
 
     filename = group.filename.encode('utf8')
-    print(filename[len(filename)-4:len(filename)])
+    # print(filename, filename[len(filename)-4:len(filename)])
     # if(filename[len(filename)-4:len(filename)] == '.jpg')):
 
     image_format = b'jpg'
@@ -89,7 +96,7 @@ def create_tf_example(group, path):
 
 def main(_):
     writer = tf.io.TFRecordWriter(FLAGS.output_path)
-    path = os.path.join('data/images')
+    path = os.path.join(FLAGS.image_dir)
     print(path)
     examples = pd.read_csv(FLAGS.csv_input)
 

@@ -30,11 +30,12 @@ def json_to_csv(path):
 
 def main():
     print(os.getcwd())
+    # Todo add validate folder
     for directory in ['train', 'validate', 'test']:
         image_path = os.path.join(os.getcwd(), 'data/images/{}'.format(directory))
         json_df = json_to_csv(image_path)
         json_df.to_csv('data/{}.csv'.format(directory), index=None)
-        print('Successfully converted xml to csv.')
+        print('Successfully converted json to csv.')
 
 
 main()

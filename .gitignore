@@ -3,3 +3,4 @@ images/*
 venv/*
 models/*
 .idea/*
+supervisely/*
