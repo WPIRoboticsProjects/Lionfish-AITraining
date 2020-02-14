@@ -8,7 +8,7 @@ Usage:
   python3 generate_tfrecord.py --csv_input=data/test.csv  --image_dir==data/images/test --output_path=data/test.record
 
   # Create validation data
-   8,
+  python3 generate_tfrecord.py --csv_input=data/validate.csv  --image_dir==data/images/validate --output_path=data/validate.record
 """
 
 
@@ -49,19 +49,30 @@ def split(df, group):
 
 
 def create_tf_example(group, path):
+
+    # todo check in png vs jpg makes difference
     print(os.path.join(path, '{}'.format(group.filename)))
     with tf.io.gfile.GFile(os.path.join(path, '{}'.format(group.filename)), 'rb') as fid:
-        encoded_jpg = fid.read()
-    encoded_jpg_io = io.BytesIO(encoded_jpg)
+        encoded_image = fid.read()
+    encoded_image_io = io.BytesIO(encoded_image)
     # print(encoded_jpg, encoded_jpg_io)
-    image = Image.open(encoded_jpg_io)
-    width, height = image.size
+    image = Image.open(encoded_image_io)
 
+    width, height = image.size
+    # print(image.format, width, height)
     filename = group.filename.encode('utf8')
     # print(filename, filename[len(filename)-4:len(filename)])
     # if(filename[len(filename)-4:len(filename)] == '.jpg')):
 
-    image_format = b'jpg'
+    # todo check in png vs jpg makes difference
+    image_format = ''
+    if image.format == 'JPEG':
+        image_format = b'jpg'
+    elif image.format == 'PNG':
+        image_format = b'png'
+    elif image.format == 'BMP':
+        image_format = b'bmp'
+    print(image.format, image_format)
     xmins = []
     xmaxs = []
     ymins = []
@@ -77,29 +88,28 @@ def create_tf_example(group, path):
         classes_text.append(row['class'].encode('utf8'))
         classes.append(class_text_to_int(row['class']))
 
-    tf_example = tf.train.Example(features=tf.train.Features(feature={
+    feature_dict = {
         'image/height': dataset_util.int64_feature(height),
         'image/width': dataset_util.int64_feature(width),
         'image/filename': dataset_util.bytes_feature(filename),
         'image/source_id': dataset_util.bytes_feature(filename),
-        'image/encoded': dataset_util.bytes_feature(encoded_jpg),
+        'image/encoded': dataset_util.bytes_feature(encoded_image),
         'image/format': dataset_util.bytes_feature(image_format),
         'image/object/bbox/xmin': dataset_util.float_list_feature(xmins),
         'image/object/bbox/xmax': dataset_util.float_list_feature(xmaxs),
         'image/object/bbox/ymin': dataset_util.float_list_feature(ymins),
         'image/object/bbox/ymax': dataset_util.float_list_feature(ymaxs),
         'image/object/class/text': dataset_util.bytes_list_feature(classes_text),
-        'image/object/class/label': dataset_util.int64_list_feature(classes),
-    }))
+        'image/object/class/label': dataset_util.int64_list_feature(classes)
+    }
+    tf_example = tf.train.Example(features=tf.train.Features(feature=feature_dict))
     return tf_example
 
 
 def main(_):
     writer = tf.io.TFRecordWriter(FLAGS.output_path)
     path = os.path.join(FLAGS.image_dir)
-    print(path)
     examples = pd.read_csv(FLAGS.csv_input)
-
     grouped = split(examples, 'filename')
     for group in grouped:
         tf_example = create_tf_example(group, path)
@@ -107,7 +117,6 @@ def main(_):
 
     writer.close()
     output_path = os.path.join(os.getcwd(), FLAGS.output_path)
-    print(output_path)
     print('Successfully created the TFRecords: {}'.format(output_path))
 
 
