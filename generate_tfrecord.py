@@ -39,7 +39,7 @@ def class_text_to_int(row_label):
     elif row_label == 'Diver':
         return 2
     else:
-        return 0
+        return 3
 
 
 def split(df, group):
