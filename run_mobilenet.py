@@ -1,7 +1,7 @@
 import numpy as np
 import os
-from utils import label_map_util
-from utils import visualization_utils as vis_util
+# from utils import label_map_util
+# from utils import visualization_utils as vis_util
 import tensorflow as tf
 import cv2 as cv
 
@@ -30,12 +30,12 @@ with detection_graph.as_default():
         tf.import_graph_def(od_graph_def, name='')
 
 
-# Loading label map
-# Label maps map indices to category names, so that when our convolution network predicts `5`, we know that this corresponds to `airplane`.  Here we use internal utility functions, but anything that returns a dictionary mapping integers to appropriate string labels would be fine
-label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
-categories = label_map_util.convert_label_map_to_categories(
-    label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
-category_index = label_map_util.create_category_index(categories)
+# # Loading label map
+# # Label maps map indices to category names, so that when our convolution network predicts `5`, we know that this corresponds to `airplane`.  Here we use internal utility functions, but anything that returns a dictionary mapping integers to appropriate string labels would be fine
+# label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
+# categories = label_map_util.convert_label_map_to_categories(
+#     label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
+# category_index = label_map_util.create_category_index(categories)
 
 
 # # Helper code
@@ -75,14 +75,14 @@ with detection_graph.as_default():
                 [boxes, scores, classes, num_detections],
                 feed_dict={image_tensor: image_np_expanded})
             # Visualization of the results of a detection.
-            vis_util.visualize_boxes_and_labels_on_image_array(
-                image_np,
-                np.squeeze(boxes),
-                np.squeeze(classes).astype(np.int32),
-                np.squeeze(scores),
-                category_index,
-                use_normalized_coordinates=True,
-                line_thickness=8)
+            # vis_util.visualize_boxes_and_labels_on_image_array(
+            #     image_np,
+            #     np.squeeze(boxes),
+            #     np.squeeze(classes).astype(np.int32),
+            #     np.squeeze(scores),
+            #     category_index,
+            #     use_normalized_coordinates=True,
+            #     line_thickness=8)
 
             # Display output
             cv.imshow('object detection', cv.resize(image_np, (800, 600)))
