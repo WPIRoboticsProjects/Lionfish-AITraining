@@ -12,10 +12,10 @@ cap = cv.VideoCapture(left)  # Change only if you have more than one webcams
 
 
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
-PATH_TO_MODEL = 'mobilenet/optimized_model.pb'
+PATH_TO_MODEL = 'models/mobilenet/optimized_model.pb'
 
 # List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = 'mobilenet/data-inception-lionfish_lionfish_label_map.pbtxt'
+PATH_TO_LABELS = 'models/mobilenet/data-inception-lionfish_lionfish_label_map.pbtxt'
 
 # Number of classes to detect
 NUM_CLASSES = 3
@@ -24,7 +24,7 @@ NUM_CLASSES = 3
 detection_graph = tf.Graph()
 with detection_graph.as_default():
     od_graph_def = tf.compat.v1.GraphDef()
-    with tf.gfile.GFile(PATH_TO_MODEL, 'rb') as fid:
+    with tf.io.gfile.GFile(PATH_TO_MODEL, 'rb') as fid:
         serialized_graph = fid.read()
         od_graph_def.ParseFromString(serialized_graph)
         tf.import_graph_def(od_graph_def, name='')
@@ -44,10 +44,11 @@ with detection_graph.as_default():
 #     return np.array(image.getdata()).reshape(
 #         (im_height, im_width, 3)).astype(np.uint8)
 
-
+config = tf.ConfigProto()
+config.gpu_options.allow_growth=True
 # Detection
 with detection_graph.as_default():
-    with tf.Session(graph=detection_graph) as sess:
+    with tf.compat.v1.Session(graph=detection_graph, config=config) as sess:
         while True:
 
             # Read frame from camera
