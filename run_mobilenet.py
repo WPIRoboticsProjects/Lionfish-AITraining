@@ -23,7 +23,7 @@ NUM_CLASSES = 3
 # Load a (frozen) Tensorflow model into memory.
 detection_graph = tf.Graph()
 with detection_graph.as_default():
-    od_graph_def = tf.GraphDef()
+    od_graph_def = tf.compat.v1.GraphDef()
     with tf.gfile.GFile(PATH_TO_MODEL, 'rb') as fid:
         serialized_graph = fid.read()
         od_graph_def.ParseFromString(serialized_graph)
