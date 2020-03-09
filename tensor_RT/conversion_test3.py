@@ -157,7 +157,7 @@ def main():
     trt.init_libnvinfer_plugins(TRT_LOGGER, '')
 
     # compile the model into TensorRT engine
-    model = args.model
+    model = 'ssd_mobilenet_v2_coco' # args.model
     spec = MODEL_SPECS[model]
     dynamic_graph = add_plugin(
         gs.DynamicGraph(spec['input_pb']),
