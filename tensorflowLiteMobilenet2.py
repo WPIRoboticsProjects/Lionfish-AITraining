@@ -9,7 +9,7 @@ img = cv.imread('frame_00000.png')
 cv.imshow('img', img)
 # cv.waitKey(0)
 # Load TFLite model and allocate tensors.
-interpreter = tf.lite.Interpreter(model_path="/tmp/tflite/detect.tflite")
+interpreter = tf.lite.Interpreter(model_path="models/mobilenet.tflite")
 print(interpreter)
 interpreter.allocate_tensors()
 
@@ -22,9 +22,10 @@ print("== Input details ==")
 print("shape:", input_details[0]['shape'])
 print("type:", input_details[0]['dtype'])
 
+img = img.astype('uint8')
 img = cv.resize(img, (300, 300))
 print(img.shape)
-input_image = np.asarray(img, dtype=np.float32)
+input_image = np.asarray(img) #, dtype=np.float32)
 
 input_image = np.expand_dims(input_image, 0)
 print(input_image.shape)
