@@ -7,11 +7,13 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 # import os
 # os.chdir("/home/nicholas/Downloads/models/research/object_detection")
-from object_detection.utils import visualization_utils as vis_util
-from object_detection.utils import label_map_util
+from object_detection.utils import visualization_utils as vis_util # here
+from object_detection.utils import label_map_util # here
 # from utils import visualization_utils as vis_util
 
-PATH_TO_MODEL = 'models/mobilenet/optimized_model.pb'
+# PATH_TO_MODEL = 'models/mobilenet/optimized_model.pb'
+# PATH_TO_MODEL = 'models/inception/inception_frozen.pb'
+PATH_TO_MODEL = 'models/resnet/resnet_frozen.pb'
 PATH_TO_LABELS = 'models/mobilenet/data-inception-lionfish_lionfish_label_map.pbtxt'
 NUM_CLASSES = 3
 
@@ -42,11 +44,25 @@ def calc_iou(gt_bbox, pred_bbox):
     x_topleft_gt, y_topleft_gt, x_bottomright_gt, y_bottomright_gt = gt_bbox
     x_topleft_p, y_topleft_p, x_bottomright_p, y_bottomright_p = pred_bbox
 
-    if (x_topleft_gt > x_bottomright_gt) or (y_topleft_gt > y_bottomright_gt):
-        raise AssertionError("Ground Truth Bounding Box is not correct")
+    if x_topleft_gt > x_bottomright_gt:
+        print("\nWarning!!")
+        print("Ground Truth Bounding Box is not correct", x_topleft_gt, x_bottomright_gt, y_topleft_gt, y_bottomright_gt)
+        print("")
+        temp = x_topleft_gt
+        x_topleft_gt = x_bottomright_gt
+        x_bottomright_gt = temp
+
+    if y_topleft_gt > y_bottomright_gt:
+        print("\nWarning!!")
+        print("Ground Truth Bounding Box is not correct", x_topleft_gt, x_bottomright_gt, y_topleft_gt, y_bottomright_gt)
+        print("")
+        temp = y_topleft_gt
+        y_topleft_gt = y_bottomright_gt
+        y_bottomright_gt = temp
+
+
     if (x_topleft_p > x_bottomright_p) or (y_topleft_p > y_bottomright_p):
-        raise AssertionError("Predicted Bounding Box is not correct", x_topleft_p, x_bottomright_p, y_topleft_p,
-                             y_bottomright_gt)
+        raise AssertionError("Predicted Bounding Box is not correct", x_topleft_p, x_bottomright_p, y_topleft_p, y_bottomright_gt)
 
     # if the GT bbox and predcited BBox do not overlap then iou=0
     if (x_bottomright_gt < x_topleft_p):
@@ -184,33 +200,38 @@ def get_avg_precision_at_iou(gt_boxes, pred_bb, iou_thr=0.5):
     # Loop over model score thresholds and calculate precision, recall
     for ithr, model_score_thr in enumerate(sorted_model_scores[:-1]):
         # On first iteration, define img_results for the first time:
-        print("Mode score : ", model_score_thr)
+        print("Model score : ", model_score_thr)
         img_ids = gt_boxes.keys() if ithr == 0 else model_scores[model_score_thr]
-    for img_id in img_ids:
+    # indent start
+        for img_id in img_ids:
 
-        gt_boxes_img = gt_boxes[img_id]
-        box_scores = pred_boxes_pruned[img_id]['scores']
-        start_idx = 0
-        for score in box_scores:
-            if score <= model_score_thr:
-                pred_boxes_pruned[img_id]
-                start_idx += 1
-            else:
-                break
-                # Remove boxes, scores of lower than threshold scores:
-        pred_boxes_pruned[img_id]['scores'] = pred_boxes_pruned[img_id]['scores'][start_idx:]
-        pred_boxes_pruned[img_id]['boxes'] = pred_boxes_pruned[img_id]['boxes'][start_idx:]
-        # Recalculate image results for this image
-        print(img_id)
-        img_results[img_id] = get_single_image_results(gt_boxes_img, pred_boxes_pruned[img_id]['boxes'], iou_thr=0.5)
-        # calculate precision and recall
-    prec, rec = calc_precision_recall(img_results)
-    precisions.append(prec)
-    recalls.append(rec)
-    model_thrs.append(model_score_thr)
+            gt_boxes_img = gt_boxes[img_id] # ['boxes'] # change here by adding boxes
+            box_scores = pred_boxes_pruned[img_id]['scores']
+            start_idx = 0
+            for score in box_scores:
+                if score <= model_score_thr:
+                    pred_boxes_pruned[img_id]
+                    start_idx += 1
+                else:
+                    break
+                    # Remove boxes, scores of lower than threshold scores:
+            pred_boxes_pruned[img_id]['scores'] = pred_boxes_pruned[img_id]['scores'][start_idx:]
+            pred_boxes_pruned[img_id]['boxes'] = pred_boxes_pruned[img_id]['boxes'][start_idx:]
+            # Recalculate image results for this image
+            # print(img_id)
+            # print(gt_boxes_img)
+            # print(pred_boxes_pruned[img_id]['boxes'])
+            img_results[img_id] = get_single_image_results(gt_boxes_img, pred_boxes_pruned[img_id]['boxes'], iou_thr=0.5)
+            # calculate precision and recall
+        prec, rec = calc_precision_recall(img_results)
+        precisions.append(prec)
+        recalls.append(rec)
+        model_thrs.append(model_score_thr)
+    # indent end
     precisions = np.array(precisions)
     recalls = np.array(recalls)
     prec_at_rec = []
+
     for recall_level in np.linspace(0.0, 1.0, 11):
         try:
             args = np.argwhere(recalls > recall_level).flatten()
@@ -220,6 +241,7 @@ def get_avg_precision_at_iou(gt_boxes, pred_bb, iou_thr=0.5):
             print(args, "Args")
             print(prec, "precision")
         except ValueError:
+            print("value error")
             prec = 0.0
         prec_at_rec.append(prec)
     avg_prec = np.mean(prec_at_rec)
@@ -233,6 +255,9 @@ def readData():
     dataset = tf.data.TFRecordDataset(filenames=['test.record'])
 
     image_array = []
+    id_array = []
+    coord_array = []
+    feature_array = []
 
     data_iterator = iter(dataset)
 
@@ -274,6 +299,15 @@ def readData():
             # print("ymax: ", ymax)
             # print("xmin: ", xmin)
             # print("ymin: ", ymin)
+
+            temp_coord_array = []
+            for i in range(0, len(feature)):
+                temp_coord_array.append([xmin[i]*300.0, ymin[i]*300.0, xmax[i]*300.0, ymax[i]*300.0])
+
+            coord_array.append(temp_coord_array)
+            id_array.append(str(id))
+            feature_array.append(feature)
+
             # print("width: ", width)
             # print("height: ", height)
 
@@ -299,18 +333,40 @@ def readData():
         print("multiple: ", multiple)
         print("total: ", total)
 
-    return image_array
+    return image_array, id_array, coord_array, feature_array
+
+def lookup_labels(score_array, class_array, num):
+    # print(score_array)
+    # print(class_array)
+    # print(num)
+    # print("")
+    return_score_array = []
+    return_class_array = []
+    for i in range(0, num):
+        if class_array[i] == 1:
+            return_score_array.append(score_array[i])
+            return_class_array.append("Lionfish")
+        elif class_array[i] == 2:
+            return_score_array.append(score_array[i])
+            return_class_array.append("Diver")
+        else:
+            print("If reached, background data is in here")
+            return_score_array.append(score_array[i])
+            return_class_array.append("Background")
+    return return_score_array, return_class_array
 
 def run_detection(detection_graph, image_array):
 
     actual_detections = []
+    actual_scores = []
+    actual_labels = []
 
-    # # Loading label map
-    # # Label maps map indices to category names, so that when our convolution network predicts `5`, we know that this corresponds to `airplane`.  Here we use internal utility functions, but anything that returns a dictionary mapping integers to appropriate string labels would be fine
-    label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
+    # Loading label map
+    # Label maps map indices to category names, so that when our convolution network predicts `5`, we know that this corresponds to `airplane`.  Here we use internal utility functions, but anything that returns a dictionary mapping integers to appropriate string labels would be fine
+    label_map = label_map_util.load_labelmap(PATH_TO_LABELS) # here
     categories = label_map_util.convert_label_map_to_categories(
         label_map, max_num_classes=NUM_CLASSES, use_display_name=True)
-    category_index = label_map_util.create_category_index(categories)
+    category_index = label_map_util.create_category_index(categories) # to here
 
     config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
@@ -318,7 +374,7 @@ def run_detection(detection_graph, image_array):
     with detection_graph.as_default():
         with tf.compat.v1.Session(graph=detection_graph, config=config) as sess:
             i = 0
-            while i < 5: #len(image_array):
+            while i < len(image_array):
 
                 # # Read frame from camera
                 # ret, img = cap.read()
@@ -343,7 +399,7 @@ def run_detection(detection_graph, image_array):
                 (boxes, scores, classes, num_detections) = sess.run(
                     [boxes, scores, classes, num_detections],
                     feed_dict={image_tensor: image_np_expanded})
-                # Visualization of the results of a detection.
+                # Visualization of the results of a detection. # here
                 vis_util.visualize_boxes_and_labels_on_image_array(
                     image_np,
                     np.squeeze(boxes),
@@ -351,17 +407,58 @@ def run_detection(detection_graph, image_array):
                     np.squeeze(scores),
                     category_index,
                     use_normalized_coordinates=True,
-                    line_thickness=4)
+                    line_thickness=4) # to here
 
                 # Display output
                 # cv.imshow('object detection', cv.resize(image_np, (800, 600)))
-                cv.imwrite((str(i) + ".png"), cv.resize(image_np, (800, 600)))
-                print(image_tensor)
-                print(boxes)
-                print(scores)
-                print(classes)
-                print(num_detections)
+                cv.imwrite(("out_images/" + str(i) + ".png"), cv.resize(image_np, (800, 600)))
+                # print(image_tensor)
+                # print(np.squeeze(boxes))
+                temp_detection = []
+                for box in np.squeeze(boxes):
+                    if box[0] == 0 and box[1] == 0 and box[2] == 0 and box[3] == 0:
+                        # nothing found
+                        pass
+                    else:
+                        new_detection = [box[0]*300.0, box[1]*300.0, box[2]*300.0, box[3]*300.0]
+                        temp_detection.append(new_detection)
+                actual_detections.append(temp_detection)
+
+                comp_score, comp_class = lookup_labels(np.squeeze(scores), np.squeeze(classes), len(temp_detection))
+                actual_scores.append(comp_score)
+                actual_labels.append(comp_class)
+
+                # print(np.squeeze(scores))
+                # print(classes)
+                # print(num_detections)
+                print("Curr pred # " + str(i))
                 i += 1
+    # print("\nActual Detections: ")
+    # print(actual_detections)
+    # print("\nActual Scores: ")
+    # print(actual_scores)
+    # print("\nActual labels: ")
+    # print(actual_labels)
+    return actual_detections, actual_scores, actual_labels
+
+def clean_data(ground_id, ground_coord, ground_feature, det_coord, det_scores, det_feature):
+    ground_boxes = {}
+    pred_boxes = {}
+
+    for i in range(0, len(ground_id)):
+        # ground_boxes[ground_id[i]] = {}
+        # ground_boxes[ground_id[i]]["boxes"] = ground_coord[i]
+        # ground_boxes[ground_id[i]]["features"] = ground_feature[i]
+        ground_boxes[ground_id[i]] = ground_coord[i]
+        pred_boxes[ground_id[i]] = {}
+        pred_boxes[ground_id[i]]["boxes"] = det_coord[i]
+        pred_boxes[ground_id[i]]["features"] = det_feature[i]
+        pred_boxes[ground_id[i]]["scores"] = det_scores[i]
+    print("\nGround: ")
+    print(ground_boxes)
+    print("\nPredicted: ")
+    print(pred_boxes)
+    return ground_boxes, pred_boxes
 
 
 if __name__== "__main__":
@@ -374,6 +471,25 @@ if __name__== "__main__":
             tf.import_graph_def(od_graph_def, name='')
 
 
-    image_array = readData()
+    image_array, id_array, coord_array, feature_array = readData()
+    # print("\nIds: ")
+    # print(id_array)
+    # print("\nCoords: ")
+    # print(coord_array)
+    # print("\nFeatures: ")
+    # print(feature_array)
 
-    run_detection(detection_graph, image_array)
+    detections, scores, labels = run_detection(detection_graph, image_array)
+
+    ground, predicted = clean_data(id_array, coord_array, feature_array, detections, scores, labels)
+
+    print("\nGround ")
+    print(ground)
+    print("\nPredicted ")
+    print(predicted)
+
+    precision_data = get_avg_precision_at_iou(ground, predicted)
+
+    print("\nPrecision data: ")
+    print(precision_data)
+
