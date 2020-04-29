@@ -3,3 +3,7 @@ images/*
 venv/*
 .idea/*
 supervisely/*
+*.pb
+*/model.ckpt*
+*.pbtxt
+
